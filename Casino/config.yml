@@ -1,0 +1,23 @@
+# Notes:
+# 
+settings:
+  Cost: 10 # Cost per slot play
+  NearMod: 2 # Multiplier for when similar icons are next to each other like this: * * ^ or ^ * *
+  TrippleMod: 3 # Multiplier for when similar icons fill the slots like * * *
+  SideMod: 1 # Multiplier for when similar icons are on the edge together like * ^ *
+  Seven: 250 # Payout with no multipliers
+  SevenChance: 3 # Chance out of 100 for one to be choosen for one of the three slot icons
+  Heart: 100
+  HeartChance: 3
+  Check: 75
+  CheckChance: 3
+  Knight: 50
+  KnightChance: 6
+  UpTriangle: 25
+  UpTriangleChance: 10
+  DownTriangle: 10
+  DownTriangleChance: 16
+  Circle: 5
+  CircleChance: 20
+  Square: 2
+  SquareChance: 39 # Make sure all the chances add up to 100 or it will be inaccurate

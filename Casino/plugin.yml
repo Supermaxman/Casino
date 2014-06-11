@@ -1,0 +1,6 @@
+name: Casino
+main: me.supermaxman.casino.Casino
+version: 1.0.0
+author: Supermaxman
+description: Casino
+commands:
