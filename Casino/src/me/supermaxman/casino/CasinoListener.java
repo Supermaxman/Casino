@@ -1,5 +1,6 @@
 package me.supermaxman.casino;
 
+import java.io.IOException;
 import java.util.Random;
 
 import org.bukkit.Bukkit;
@@ -15,6 +16,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 
 public class CasinoListener implements Listener {
@@ -125,7 +128,7 @@ public class CasinoListener implements Listener {
 				l1 = p[r1];
 				l2 = p[r2];
 				l3 = p[r3];
-				
+
 				line = l1 + "    " + l2 + "    " + l3;
 				sign.setLine(1, line);	
 				sign.update();
@@ -188,7 +191,7 @@ public class CasinoListener implements Listener {
 					}
 					sign.getLocation().getWorld().playEffect(sign.getLocation(), Effect.EXTINGUISH, 0);
 				}
-				
+
 
 				line = l1 + "    " + l2 + "    " + l3;
 				sign.setLine(1, line);	
@@ -217,7 +220,7 @@ public class CasinoListener implements Listener {
 				l1 = p[r1];
 				l2 = p[r2];
 				l3 = p[r3];
-				
+
 				line = l1 + "    " + l2 + "    " + l3;
 				sign.setLine(1, line);	
 				sign.update();
@@ -229,7 +232,7 @@ public class CasinoListener implements Listener {
 		Casino.economy.depositPlayer(p.getName(), i);
 		p.sendMessage(ChatColor.AQUA+"You have won "+ChatColor.GOLD+i+ChatColor.AQUA+" coins!");//change messages
 	}
-	
+
 	public static String[] getPercents() {
 		int a = 0;
 		String[] s1 = new String[100];
@@ -282,5 +285,267 @@ public class CasinoListener implements Listener {
 			a++;
 		}
 		return s1;
+	}
+
+
+	@EventHandler
+	public void onTableInteraction(PlayerInteractEvent e) {
+		Block b = e.getClickedBlock();
+		Action a = e.getAction();
+
+		@SuppressWarnings("unused")
+		Sign s = null;
+
+		if ((a != Action.LEFT_CLICK_BLOCK) && (a != Action.RIGHT_CLICK_BLOCK)) {
+			return;
+		}
+
+		Casino.PlayerState state = Casino.plugin.getState(e.getPlayer());
+
+		if ((b.getType() == Material.WALL_SIGN) || (b.getType() == Material.SIGN_POST))
+		{
+			if (state == Casino.PlayerState.NONE) {
+				s = (Sign)b.getState();
+				BlackjackTable bjt = Casino.plugin.getDataHandler().getTable(b);
+
+				if (bjt == null) {
+					return;
+				}
+
+				bjt.runGame(e);
+				return;
+			}
+
+			BlackjackTable table = Casino.plugin.getDataHandler().getTable(b);
+			Player p = e.getPlayer();
+			if (state == Casino.PlayerState.INFO)
+			{
+
+				if (!p.isOp())
+				{
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You aren't allowed to get info on Blackjack Table!");
+
+					return;
+				}
+
+				if (table.isOwned())
+				{
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Owner : " + table.getOwner());
+					if (!Casino.plugin.getSettings().linkedToAccounts())
+						p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Balance : " + table.getAmount());
+				}
+				else
+				{
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Owner : Server");
+					if (!Casino.plugin.getSettings().linkedToAccounts()) {
+						p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Balance : <infinite>");
+					}
+				}
+
+				p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Uses : " + table.getUses());
+				p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Max Bet : " + table.getMaxBet());
+			}
+			else if (state == Casino.PlayerState.DEPOSIT)
+			{
+				double amount = state.getVal();
+
+				if (!p.isOp())
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You aren't allowed to deposit!");
+					return;
+				}
+
+				if (!table.isOwned())
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "This is a server owned Blackjack Table!");
+					return;
+				}
+
+				if (!table.isOwner(e.getPlayer()))
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "This isn't your Blackjack Table.");
+					return;
+				}
+
+				if (!Casino.economy.has(e.getPlayer().getName(), amount))
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You don't have enough money!");
+					return;
+				}
+
+				Casino.economy.withdrawPlayer(e.getPlayer().getName(), amount);
+
+				table.addAmount(amount);
+
+				e.getPlayer().sendMessage(ChatColor.GREEN + Casino.economy.format(amount) + " has been deposited into your Blackjack Table.");
+			} else if (state == Casino.PlayerState.WITHDRAW)
+			{
+				double amount = state.getVal();
+
+				if (!p.isOp())
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You aren't allowed to withdraw!");
+					return;
+				}
+
+				if (!table.isOwned())
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "This is a server owned Blackjack Table!");
+					return;
+				}
+
+				if (!table.isOwner(e.getPlayer()))
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "This isn't your Blackjack Table.");
+					return;
+				}
+
+				if (table.getAmount() < amount)
+				{
+					e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "This Blackjack Table doesn't have enough money in it!");
+					return;
+				}
+
+				Casino.economy.depositPlayer(e.getPlayer().getName(), amount);
+
+				table.subtractAmount(amount);
+
+				e.getPlayer().sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You withdrew " + Casino.economy.format(amount) + " from the table.");
+			}
+		}
+	}
+
+	@EventHandler
+	public void onBlackJackDestroy(BlockBreakEvent e) {
+		Block b = e.getBlock();
+		Player p = e.getPlayer();
+		BlackjackTable table = Casino.plugin.getDataHandler().getTable(b);
+		if (table == null) {
+			return;
+		}
+		if (!p.isOp()) {
+			p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You don't have permission to break this Table.");
+			e.setCancelled(true);
+			Sign s = (Sign)b;
+			s.update();
+			return;
+		}
+		table.closeTable();
+		Casino.plugin.getDataHandler().removeBlackjackTable(table);
+		p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Table Destroyed.");
+		b.breakNaturally();
+	}
+
+	@EventHandler
+	public void onBlackJackCreate(SignChangeEvent e) throws IOException {
+		Block b = e.getBlock();
+		Player p = e.getPlayer();
+		int maxBet = Casino.plugin.getSettings().maxBet();
+		if ((b.getType() == Material.SIGN_POST) || (b.getType() == Material.WALL_SIGN))
+			if (e.getLine(0).equalsIgnoreCase("[Blackjack]")) {
+				double startingAmount = 0.0D;
+				try {
+					if (!e.getLine(1).isEmpty())
+						startingAmount = Double.parseDouble(e.getLine(1).replaceAll("$", ""));
+					if (startingAmount < 0.0D) {
+						startingAmount = 0.0D;
+						p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You can't deposit negative values!");
+					}
+					if (Casino.economy.has(p.getName(), startingAmount)) {
+						Casino.economy.withdrawPlayer(p.getName(), startingAmount);
+					} else {
+						startingAmount = 0.0D;
+						p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You don't have enough money!");
+					}
+					if (!e.getLine(2).isEmpty()) {
+						maxBet = Integer.parseInt(e.getLine(2).replaceAll("$", ""));
+					}
+					if (maxBet <= 0) {
+						maxBet = Casino.plugin.getSettings().maxBet();
+						p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You can't have negative max betting values!");
+					}
+				}
+				catch (NumberFormatException localNumberFormatException)
+				{
+				}
+				if (p.isOp()) {
+					Casino.plugin.getDataHandler().addBlackjackTable(p.getName(), 0.0D, 0, maxBet+"", b);
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Table Created.");
+					e.setLine(0, ChatColor.YELLOW + "[Blackjack]");
+					e.setLine(1, ChatColor.YELLOW+"");
+					e.setLine(2, ChatColor.YELLOW+"");
+					Casino.plugin.getDataHandler().saveBlackjackData(Casino.plugin.getBlackjackDataFile());
+					BlackjackTable t = Casino.plugin.getDataHandler().getTable(b);
+					t.setAmount(startingAmount);
+				} else {
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You don't have permission to create this Table.");
+					e.setCancelled(true);
+					b.breakNaturally();
+					return;
+				}
+			} else if (e.getLine(0).equalsIgnoreCase("[Blackjacks]")) {
+				try {
+					if (!e.getLine(2).isEmpty()) {
+						maxBet = Integer.parseInt(e.getLine(2).replaceAll("$", ""));
+						p.sendMessage("line2notempty");
+					}
+					if (maxBet <= 0) {
+						maxBet = Casino.plugin.getSettings().maxBet();
+						p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You can't have negative max betting values!");
+					}
+				}
+				catch (Exception localException) {
+				}
+				if (p.isOp()) {
+					Casino.plugin.getDataHandler().addBlackjackTable(null, 0.0D, 0, maxBet+"", b);
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "Server Table Created.");
+					e.setLine(0, ChatColor.YELLOW + "[Blackjack]");
+					e.setLine(1, ChatColor.YELLOW+"");
+					e.setLine(2, ChatColor.YELLOW+"");
+					Casino.plugin.getDataHandler().saveBlackjackData(Casino.plugin.getBlackjackDataFile());
+				} else {
+					p.sendMessage(ChatColor.GOLD + "[Blackjack] " + ChatColor.DARK_GREEN + "You don't have permission to create this Table.");
+					e.setCancelled(true);
+					b.breakNaturally();
+					return;
+				}
+			}
+	}
+
+	@EventHandler
+	public void closeTable(PlayerMoveEvent e) {
+		Player p = e.getPlayer();
+		String name = p.getName();
+
+		if (Casino.plugin.getDataHandler().getUserList().contains(name))
+			for (BlackjackTable t : Casino.plugin.getDataHandler().getTableList()) {
+				if ((!t.getInUse()) || 
+						(!t.getUser().equals(name)))
+					continue;
+				double x1 = t.getBlock().getX();
+				double y1 = t.getBlock().getZ();
+				double x2 = p.getLocation().getX();
+				double y2 = p.getLocation().getZ();
+
+				x2 -= x1;
+				x2 *= x2;
+				y2 -= y1;
+				y2 *= y2;
+				x2 += y2;
+				double d = Math.sqrt(x2);
+
+				if (d >= 2.2D)
+					t.closeTable(p);
+			}
+	}
+
+	@EventHandler
+	public void onPlayerLogout(PlayerQuitEvent e)
+	{
+		for (BlackjackTable table : Casino.plugin.getDataHandler().getTableList()) {
+			if ((table.getUser() == null) || 
+					(!table.getUser().equals(e.getPlayer().getName()))) continue;
+			table.closeTable();
+		}
 	}
 }

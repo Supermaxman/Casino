@@ -4,3 +4,9 @@ version: 1.0.0
 author: Supermaxman
 description: Casino
 commands:
+  bj:
+    description: Default version and author display.
+    usage: /<command>
+  blackjack:
+    description: Default version and author display.
+    usage: /<command>
