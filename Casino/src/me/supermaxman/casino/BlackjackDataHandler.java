@@ -17,6 +17,7 @@ public class BlackjackDataHandler
 {
 	private ArrayList<BlackjackTable> tableList = new ArrayList<BlackjackTable> ();
 	private ArrayList<String> userList = new ArrayList<String>();
+	@SuppressWarnings("unused")
 	private Casino plugin;
 	private FileConfiguration tablesConfig;
 

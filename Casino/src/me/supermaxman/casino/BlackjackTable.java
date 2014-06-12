@@ -1,7 +1,7 @@
 package me.supermaxman.casino;
 
 import java.util.ArrayList;
-import net.milkbowl.vault.economy.Economy;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;

@@ -18,6 +18,7 @@ public class BlackjackSettings
 	private int betIncrement;
 	private int maxBet;
 	LinkedHashMap<String, Object> map = null;
+	@SuppressWarnings("unused")
 	private Casino bj;
 
 	public BlackjackSettings(Casino bja)
@@ -79,7 +80,7 @@ public class BlackjackSettings
 		this.subtractOvercost = config.getBoolean("subtract-overcost", true);
 		this.saveOnDisable = config.getBoolean("save-on-disable", true);
 		this.saveOnSlotChange = config.getBoolean("save-on-slot-change", false);
-		this.linkedToAccounts = config.getBoolean("linked-to-accounts", false);
+		this.linkedToAccounts = config.getBoolean("linked-to-accounts", true);
 		this.betIncrement = config.getInt("betIncrement", 5);
 		this.maxBet = config.getInt("maxBet", 100);
 		if (this.maxBet == 0)
